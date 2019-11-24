@@ -1,4 +1,4 @@
-﻿using Brix.SergeRoz.SuperMarket.SuperMarketTest;
+using Brix.SergeRoz.SuperMarket.SuperMarketTest;
 using Brix.SergeRoz.SuperMarketTest.Cashier;
 using Brix.SergeRoz.SuperMarketTest.Customer;
 using System;
@@ -13,28 +13,36 @@ namespace Brix.SergeRoz.SuperMarketTest.SuperMarket
     public class SuperMarket : ISuperMarket
     {
         private ConcurrentQueue<ICustomer> _customersQueue = new ConcurrentQueue<ICustomer>();
-        CancellationTokenSource cts = new CancellationTokenSource();
+       
+        CancellationTokenSource _customerProdCts = new CancellationTokenSource();
+        CancellationTokenSource _cashiersCts = new CancellationTokenSource();
         
+        CancellationToken _customerCanceletionToken;
+        CancellationToken _cashiersCanceletionToken;
+
         private bool _isStopWorkRequested = false;
 
         private ICashier[] _cashiers;
 
         public SuperMarket(int cashiersCount)
-        {
+        {            
             _cashiers = new ICashier[cashiersCount];
+
+            _customerCanceletionToken = _customerProdCts.Token;
+            _cashiersCanceletionToken = _cashiersCts.Token;
         }
 
         public async Task StartWork()
         {
 
-            var customersSource = Task.Run(() => CustomersProducer(_customersQueue));
+            var customersSource = Task.Run(() => CustomersProducer(_customersQueue, _customerCanceletionToken));
 
             Task[] processors = new Task[_cashiers.Length];
 
             for (int i = 0; i < _cashiers.Length; i++)
             {
                 processors[i] = Task.Run(() =>
-                    new Cashier.Cashier().ProccessCustomer(_customersQueue, cts.Token)
+                    new Cashier.Cashier().ProccessCustomer(_customersQueue, _cashiersCanceletionToken)
                 );
             }
 
@@ -46,12 +54,12 @@ namespace Brix.SergeRoz.SuperMarketTest.SuperMarket
 
         public void StopWork() 
         {
-            _isStopWorkRequested = true;
+            _customerProdCts.Cancel();
         }
 
-        async Task CustomersProducer(ConcurrentQueue<ICustomer> customersQueue)
+        async Task CustomersProducer(ConcurrentQueue<ICustomer> customersQueue, CancellationToken token)
         {
-            while(!_isStopWorkRequested)
+            do
             {
                 await Task.Delay(1000); // one second delay between customers creation
 
@@ -59,6 +67,7 @@ namespace Brix.SergeRoz.SuperMarketTest.SuperMarket
               
                 customersQueue.Enqueue(customer);
             }
+            while (!token.IsCancellationRequested) ;
         }
     }
 }
