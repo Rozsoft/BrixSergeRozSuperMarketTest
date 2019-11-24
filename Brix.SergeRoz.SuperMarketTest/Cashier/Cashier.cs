@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Text;
@@ -10,16 +10,12 @@ namespace Brix.SergeRoz.SuperMarketTest.Cashier
 {
     public class Cashier : ICashier
     {
-        public string ID
-        {
-            get
-            {
-                return "Cashier:" + Guid.NewGuid().ToString();
-            }
-        }
+        public string ID { get; }                 
+        
 
         public Cashier()
         {
+            this.ID = "Cashier:" + Guid.NewGuid().ToString();
             Console.WriteLine(this.ID + " Created.");
             Console.WriteLine();
         }
@@ -34,7 +30,7 @@ namespace Brix.SergeRoz.SuperMarketTest.Cashier
                 dequeueSuccesful = customersQueue.TryDequeue(out proccessingCustomer);
                 if (dequeueSuccesful)
                 {
-                    Console.WriteLine($"{this.ID} finished serving customer {proccessingCustomer.ID}.");
+                    Console.WriteLine($"{this.ID} finished serving {proccessingCustomer.ID}.");
                     Console.WriteLine();
                 }
 
